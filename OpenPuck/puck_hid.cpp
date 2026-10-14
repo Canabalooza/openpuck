@@ -1058,7 +1058,7 @@ void SteamPuckController::task()
 			last43[s] = millis();
 		}
 	}
-	// Reset edge state only when the slot or USB device goes away; ready() is transiently false while busy.
+	// Preserve connection edges while the endpoint is transiently busy.
 	for (int s = 0; s < NSLOT; s++)
 		if (!g_slot[s].used || !USBDevice.mounted())
 			usbConn[s] = false;
