@@ -782,9 +782,13 @@ void hapticTask()
 		static const uint8_t DATA_LIZARD_ON[3] = { SETTING_LIZARD_MODE,
 							   0x01, 0x00 };
 
-		// In puck mode Steam owns haptics; skip id9 steering.
-		if (!modeIsPuck(g_usbMode)) {
-			bool wantAuto = (g_padHaptics != 0);
+		// In puck mode Steam owns haptics; skip id9 steering. Pure
+		// lizard is the exception: Steam never sees the controller, so
+		// nothing else would re-enable the pad layer after a session
+		// left id9=0, and the trackpad ticks stay silent.
+		const bool pureLizard = (g_usbMode == MODE_LIZARD);
+		if (!modeIsPuck(g_usbMode) || pureLizard) {
+			bool wantAuto = pureLizard || (g_padHaptics != 0);
 			for (int s = 0; s < NSLOT; s++) {
 				if (!g_slot[s].used || !hapticLinkUp(s)) {
 					// re-land id9 on the next (re)connect: a fresh controller defaults to
