@@ -31,7 +31,7 @@ uint8_t g_lizKeep = 1;
 // console "SO" toggles.
 uint8_t g_suspendOff = 1;
 uint8_t g_chargeOff = 0;
-static bool g_chargeOffSent[NSLOT] = { false, false, false, false };
+static bool g_chargeOffSent[NSLOT] = { 0 };
 // Host-rumble shaping (persisted in cfg.bin; console "RS<pct>" / "RY<n>").
 uint16_t g_rumbleScale = RUMBLE_SCALE_PCT;
 uint8_t g_rumbleStyle = RUMBLE_STYLE_NORMAL;
@@ -68,9 +68,9 @@ void hapticSendShutdown(uint8_t slot)
 	puckNotePowerOff(slot);
 }
 
-void hapticOnChargeState(uint8_t slot, uint8_t state)
+void hapticOnChargeState(int slot, uint8_t state)
 {
-	if (slot >= NSLOT)
+	if (slot < 0 || slot >= NSLOT)
 		return;
 	bool charging = state == 2 || state == 4;
 	if (!charging) {
@@ -79,7 +79,7 @@ void hapticOnChargeState(uint8_t slot, uint8_t state)
 	}
 	if (g_chargeOff && !g_chargeOffSent[slot]) {
 		g_chargeOffSent[slot] = true;
-		hapticSendShutdown(slot);
+		hapticSendShutdown((uint8_t)slot);
 	}
 }
 

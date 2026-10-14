@@ -99,9 +99,9 @@ extern uint8_t
 // physical gesture; the power-off fires once per suspend so the returning controller is not shut off again.
 // Turn this OFF (console "SO") if a controller must stay awake through host sleep. Persisted.
 extern uint8_t g_suspendOff;
-// Power a controller off when its battery report says it is charging or fully charged.
+// Power a controller off on charge-state 2 (charging) or 4 (charge complete).
 extern uint8_t g_chargeOff;
-void hapticOnChargeState(uint8_t slot, uint8_t state);
+void hapticOnChargeState(int slot, uint8_t state);
 // Master enable for the puck->controller haptic relay (Steam 0x80-0x86 rumble/pad-feedback). Console "HR"
 // toggles it to isolate the drag-smoothness cost of relaying Steam's trackpad haptics. See haptics.cpp.
 extern bool g_hapticRelay;

@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-// CDC commands: l=listen, s=stop, cN=channel, p<hex>=prefix, a<8hex>=base addr, b=bonds, etc.
+// CDC commands: SO=power off on suspend, CO=power off when charging; l=listen, s=stop, etc.
 // Command order matters: else-if chain, FIRST matching letter wins. 'C' and 'H' appear twice; the second
 // occurrence is unreachable.
 void serialConsolePoll()
