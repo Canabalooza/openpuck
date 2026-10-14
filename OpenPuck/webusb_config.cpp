@@ -13,6 +13,7 @@
 #include "fw_update.h"
 #include "usb_tx.h"
 #include "usb_mount.h" // modeSwitchReboot()
+#include "xinput_auth.h"
 #include <Arduino.h>
 #include <string.h>
 
@@ -32,6 +33,8 @@ extern "C" bool
 __wrap_tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage,
 				  const tusb_control_request_t *request)
 {
+	if (g_usbMode == MODE_XBOX)
+		return xinputAuthControl(rhport, stage, request);
 	if (g_usbMode == MODE_XBOX_OG &&
 	    xboxOgVendorControlXfer(rhport, stage, request))
 		return true;
