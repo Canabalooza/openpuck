@@ -74,6 +74,12 @@ void serialConsolePoll()
 					"# power off controllers on host sleep (>%ums) %s\n",
 					(unsigned)SUSPEND_OFF_MS,
 					g_suspendOff ? "ON" : "off");
+			} else if (!strcmp(line, "CO")) {
+				g_chargeOff = !g_chargeOff;
+				saveCfg();
+				Serial.printf(
+					"# power off controllers when charging %s\n",
+					g_chargeOff ? "ON" : "off");
 			} else if (!strcmp(line, "HR")) {
 				// A/B: disable the puck->controller haptic relay (Steam 0x80-0x86 rumble/pad feedback)
 				// to isolate whether relaying Steam's trackpad texture haptics degrades drag smoothness.

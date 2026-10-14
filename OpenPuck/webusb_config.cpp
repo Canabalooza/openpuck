@@ -105,7 +105,8 @@ static bool boardCommand(uint8_t op)
 //                [v21: p[53] rumble strength as PERCENT/2 (field 22, revived); p[195] rumble style
 //                 (field 39, RUMBLE_STYLE_* in haptics.h)]
 //                [v22: p[196] RF recovery status/journal transport capability marker (0x52)]
-#define WB_PAYLEN 195
+//                [v23: p[197] power-off-on-charge option (field 30)]
+#define WB_PAYLEN 196
 // The blob send is drop-on-full (never blocks loop), so the vendor TX FIFO MUST be able to hold a whole blob
 // -- otherwise tud_vendor_write_available() never reaches the frame size and EVERY frame is dropped (blank
 // panel / stale mappings). The Makefile sets -DCFG_TUD_VENDOR_TX_BUFSIZE=256; guard it here so a build without
@@ -134,6 +135,7 @@ static void webusbSendBlob()
 	// protocol version
 	// (21 = +rumble style (field 39, blob p[195]) and the REVIVED rumble-strength field 22 at blob p[53], 
 	// now carrying percent/2; 
+	// 23 = +power-off-on-charge option at p[197];
 	// 22 = +RF recovery capability marker at blob p[196];
 	// 20 = +per-type trackpad->stick mapping (fields 80..87, blob p[187..194]); 
 	// 19 = +Switch Pro legacy-gyro select (field 38, blob p[186]); the Switch report-rate and
@@ -154,7 +156,7 @@ static void webusbSendBlob()
 	// 7 = +raw accel; 
 	// 6 = +swPro120/gyroScale)
 	// clang-format on
-	p[2] = 22;
+	p[2] = 23;
 	p[3] = g_usbMode;
 	p[4] = (uint8_t)g_mDiv;
 	p[5] = (uint8_t)g_mFric;
@@ -340,6 +342,7 @@ static void webusbSendBlob()
 	// v22: append-only RF recovery transport capability. p[181] remains the
 	// upstream Steam Machine toggle; older RF builds used that byte for 0x52.
 	p[196] = 0x52;
+	p[197] = g_chargeOff;
 	// CRITICAL: usb_web.write() SPINS (`while (remain && _connected) yield();`) until the IN FIFO drains or the
 	// panel disconnects. If the panel holds the WebUSB interface open but stops reading its IN endpoint -- a
 	// backgrounded tab, or the host briefly not servicing transferIn under load -- the FIFO never empties and
@@ -1325,6 +1328,9 @@ void webusbPoll()
 				// Used to be g_landAll87, now g_isMachineInternal. Persisted to blob p[181].
 				case 29:
 					g_isMachineInternal = v ? 0xEE : 0;
+					break;
+				case 30:
+					g_chargeOff = v ? 1 : 0;
 					break;
 				}
 				if (persist)
