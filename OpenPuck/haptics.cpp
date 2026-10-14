@@ -860,34 +860,45 @@ void hapticTask()
 	}
 	// (No automatic re-init firing -- see hapticOnReconnect: the connect-time 0x81 storm was the click train
 	// the real puck never makes. hapticReinit is on-demand only, via the WebUSB "Clear stuck buzz" button.)
-	// Power-off on host sleep: only when VBUS is present (genuine sleep, not a cable unplug which also
-	// trips the suspend edge briefly) AND the suspend has PERSISTED >= SUSPEND_OFF_MS. A brief USB
-	// selective-suspend (host idle power-management) resumes in <1s; firing the power-off on its edge
-	// powered the controllers off ourselves -> random drop/reconnect churn. Arm only on a genuine
-	// resume->suspend edge (wasSusp=true at boot suppresses a false fire on boot-into-suspended).
+	// Power off after a sustained suspend or USB unmount. Some hosts unconfigure USB during shutdown
+	// without reporting a suspend; only treat an unmount as host-off after this device was mounted.
 	static bool wasSusp = true;
-	static unsigned long suspSinceMs = 0;
-	static bool suspArmed = false;
+	static bool suspendObserved = false;
+	static bool hostWasMounted = false;
+	static unsigned long hostOffSinceMs = 0;
+	static bool hostOffArmed = false;
 	bool susp = USBDevice.suspended();
+	bool mounted = USBDevice.mounted();
 	bool vbus = (NRF_POWER->USBREGSTATUS &
 		     POWER_USBREGSTATUS_VBUSDETECT_Msk) != 0;
 	if (susp && !wasSusp) {
-		suspSinceMs = millis();
-		suspArmed = true;
+		hostOffSinceMs = millis();
+		hostOffArmed = true;
+		suspendObserved = true;
 		faultDiagTrace(FR_SUSP, 0);
 	}
 	if (!susp) {
 		if (wasSusp)
 			faultDiagTrace(FR_RESUME, 0);
-		suspArmed = false;
+		suspendObserved = false;
 	}
-	// g_suspendOff: opt out of the power-off entirely -- keeps the controller awake through host sleep so its
-	// short-Steam-press remote wakeup stays available (see haptics.h). Disarm either way so re-enabling it
-	// mid-suspend can't fire late.
-	if (suspArmed && vbus && (millis() - suspSinceMs) >= SUSPEND_OFF_MS) {
-		if (g_suspendOff)
+	if (mounted)
+		hostWasMounted = true;
+	bool hostUnavailable = suspendObserved || (hostWasMounted && !mounted);
+	static bool hostOffHandled = false;
+	if (!hostUnavailable) {
+		hostOffArmed = false;
+		hostOffHandled = false;
+	} else if (!hostOffArmed) {
+		hostOffSinceMs = millis();
+		hostOffArmed = true;
+	}
+	// Disarm even when disabled or VBUS is gone, so enabling mid-suspend cannot fire late.
+	if (hostOffArmed && !hostOffHandled &&
+	    (millis() - hostOffSinceMs) >= SUSPEND_OFF_MS) {
+		if (g_suspendOff && vbus)
 			hapticSendShutdown();
-		suspArmed = false; // fire once per suspend
+		hostOffHandled = true;
 	}
 	wasSusp = susp;
 	// Per-slot stuck-rumble watchdog: force zero after 2.5s without a refresh.
