@@ -30,6 +30,8 @@ uint8_t g_lizKeep = 1;
 // Power the controllers off when host sleep persists (see haptics.h for the wake trade-off). Persisted;
 // console "SO" toggles.
 uint8_t g_suspendOff = 1;
+uint8_t g_chargeOff = 0;
+static bool g_chargeOffSent[NSLOT] = { false, false, false, false };
 // Host-rumble shaping (persisted in cfg.bin; console "RS<pct>" / "RY<n>").
 uint16_t g_rumbleScale = RUMBLE_SCALE_PCT;
 uint8_t g_rumbleStyle = RUMBLE_STYLE_NORMAL;
@@ -64,6 +66,21 @@ void hapticSendShutdown(uint8_t slot)
 	// the connection state (phantom reconnect / never-removed). Covers every power-off path (Steam 0x9F, the
 	// Steam+Y chord, the panel button, host suspend) since they all funnel through here.
 	puckNotePowerOff(slot);
+}
+
+void hapticOnChargeState(uint8_t slot, uint8_t state)
+{
+	if (slot >= NSLOT)
+		return;
+	bool charging = state == 2 || state == 4;
+	if (!charging) {
+		g_chargeOffSent[slot] = false;
+		return;
+	}
+	if (g_chargeOff && !g_chargeOffSent[slot]) {
+		g_chargeOffSent[slot] = true;
+		hapticSendShutdown(slot);
+	}
 }
 
 // millis of last translated host rumble (0x80), per-slot (4 XInput interfaces each have their own stream)

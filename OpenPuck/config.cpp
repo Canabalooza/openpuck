@@ -112,6 +112,7 @@ struct Cfg {
 	// pre-tail file) -> compiled default (on)
 	uint8_t suspendOff;
 	uint8_t ext[CFG_EXT_STORAGE_BYTES];
+	uint8_t chargeOff;
 }; // rsvd0 = ex-padSmooth, now the one-shot debug-CDC arm
 
 // Shortest cfg.bin we still accept: the layout as of CFG_MAGIC 0xCF, i.e. everything before the appended tail.
@@ -155,7 +156,8 @@ void saveCfg()
 		  {},
 		  g_rumbleStyle,
 		  g_suspendOff,
-		  {} };
+		  {},
+		  g_chargeOff };
 	memcpy(c.ext, g_cfgExt, sizeof c.ext);
 	for (int i = 0; i < ET_COUNT; i++) {
 		c.type[i] = g_type[i];
@@ -265,6 +267,8 @@ void loadCfg()
 			// suspend power-off enable (0xFF = a cfg.bin predating this tail field -> keep the on default)
 			if (c.suspendOff <= 1)
 				g_suspendOff = c.suspendOff;
+			if (c.chargeOff <= 1)
+				g_chargeOff = c.chargeOff;
 
 			// The poll RX window is now FIXED (g_rxWin is const) -- any persisted rxWin10 is ignored.
 		}

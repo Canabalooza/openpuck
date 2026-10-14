@@ -3791,6 +3791,9 @@ uint8_t rfConnTx(uint8_t ch, uint8_t s1, const uint8_t *payload, uint8_t plen,
 								rep[1];
 							g_battery[g_curSlot] =
 								rep[2];
+							hapticOnChargeState(
+								(uint8_t)g_curSlot,
+								rep[1]);
 						}
 						if (g_active)
 							g_active->onAuxReport(
