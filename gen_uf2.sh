@@ -41,8 +41,16 @@ if [ -z "$UF2CONV" ]; then
 fi
 
 # Prefer python3; fall back to a bare python (the CI runner's setup-python
-# provides `python`, while macOS only ships `python3`). uf2conv.py is py3-safe.
-PYTHON="$(command -v python3 || command -v python || true)"
+# provides `python`, while macOS only ships `python3`). Skip the Windows Store
+# python3.exe stub, which is on PATH but is not an interpreter.
+PYTHON=""
+for candidate in python3 python; do
+	if command -v "$candidate" >/dev/null 2>&1 &&
+		"$candidate" -c "import sys" >/dev/null 2>&1; then
+		PYTHON=$(command -v "$candidate")
+		break
+	fi
+done
 if [ -z "$PYTHON" ]; then
 	echo "gen_uf2.sh: no python interpreter found" >&2
 	exit 1

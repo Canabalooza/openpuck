@@ -33,6 +33,16 @@ Use your package manager if it ships a recent `arduino-cli`, or download the rel
 
 Use [choco](https://chocolatey.org/) and do a `choco install arduino-cli`. If you don't have that then install the official [Arduino CLI zip or MSI](https://arduino.github.io/arduino-cli/1.5/installation/), then ensure `arduino-cli.exe` is on `PATH`.
 
+The MSI default is `C:\Program Files\Arduino CLI\`. Git Bash / `make` do not see that folder unless you add it:
+
+```powershell
+$env:Path = "C:\Program Files\Arduino CLI;" + $env:Path
+```
+
+```bash
+export PATH="/c/Program Files/Arduino CLI:$PATH"
+```
+
 ## 3. Install the board core
 
 Run once on any platform:
@@ -151,6 +161,51 @@ full-board wipe all target the Adafruit bootloader and are rejected by this
 build; use the physical Open DFU workflow above instead. The panel's factory
 erase (§6, filesystem-only) and the serial `ERASE-ALL` console command work
 normally.
+
+### 4b. Makerdiary nRF52840 MDK USB Dongle
+
+GeeekPi listings of this dongle are the same hardware. Build with
+`make build-mdk` (`-DOPK_BOARD_MDK_USB_DONGLE=1` on the Feather nRF52840 /
+S140 6.1.1 layout). Ordinary `make build` must not be flashed here: it has no
+MDK reset-pin, RGB LED, or USB-interface ordering.
+
+The MDK keeps an Adafruit-format UF2 bootloader, so flashing is the §5b
+drag-and-drop path, not the Raytac Open DFU flow in §4a. Extra bootloader
+and first-install detail: `bootloader/makerdiary/README.md`.
+
+On Windows, run the `make` / `.sh` steps from Git Bash with Arduino CLI on
+`PATH` (see §2). `make flash` / `make deploy` also miss the MDK define; do
+not use them for this board.
+
+#### First-time S140 (factory S132)
+
+OpenPuck requires S140 6.1.1 and an application linked at `0x26000`. If the
+UF2 drive's `INFO_UF2.TXT` still reports S132 5.1.0:
+
+```bash
+./gen_version.sh
+make build-mdk
+make package-mdk-first-install \
+  SOFTDEVICE_HEX=/path/to/s140_nrf52_6.1.1_softdevice.hex
+```
+
+Drop `build/mdk/OpenPuck-MDK-first-install-S140.uf2` on the UF2 drive once.
+Later upgrades use the application-only UF2 below (SoftDevice and bootloader
+stay).
+
+#### Build and flash (routine updates)
+
+```bash
+./gen_version.sh
+make build-mdk
+./gen_uf2.sh build/mdk/OpenPuck.ino.hex \
+  build/mdk/OpenPuck-MDK-application.uf2
+```
+
+Double-tap reset so the board mounts as UF2BOOT / NRF52BOOT, then copy
+`OpenPuck-MDK-application.uf2` onto that drive. After OpenPuck is running,
+the WebUSB firmware updater in §5b also works (this board reports
+Adafruit DFU).
 
 ## 5. Upload the firmware
 
